@@ -1,14 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
-const Index = () => {
+export default function Index() {
+  const { user, role, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
+  if (role === "admin") return <Navigate to="/admin" replace />;
+  if (role === "affiliate") return <Navigate to="/afiliado" replace />;
+
+  // User has no role yet — show a waiting message
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold">Conta criada com sucesso!</h1>
+        <p className="text-muted-foreground">Aguarde o administrador ativar seu acesso como afiliado.</p>
       </div>
     </div>
   );
-};
-
-export default Index;
+}
