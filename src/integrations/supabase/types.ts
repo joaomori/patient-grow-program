@@ -79,6 +79,7 @@ export type Database = {
           confirmed_at: string | null
           created_at: string
           id: string
+          rdstation_deal_id: string | null
           referred_email: string | null
           referred_name: string
           referred_phone: string
@@ -89,6 +90,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           id?: string
+          rdstation_deal_id?: string | null
           referred_email?: string | null
           referred_name: string
           referred_phone: string
@@ -99,6 +101,7 @@ export type Database = {
           confirmed_at?: string | null
           created_at?: string
           id?: string
+          rdstation_deal_id?: string | null
           referred_email?: string | null
           referred_name?: string
           referred_phone?: string

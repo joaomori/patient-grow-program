@@ -39,17 +39,39 @@ export default function PublicReferral() {
     if (!affiliateId) return;
     setLoading(true);
 
-    const { error } = await supabase.from("referrals").insert({
+    const { data: insertedData, error } = await supabase.from("referrals").insert({
       affiliate_id: affiliateId,
       referred_name: name.trim(),
       referred_phone: phone.trim(),
       referred_email: email.trim() || null,
-    });
+    }).select("id").single();
 
     if (error) {
       toast({ title: "Erro", description: "Não foi possível enviar a indicação.", variant: "destructive" });
     } else {
       setSubmitted(true);
+      // Sync with RD Station CRM (fire and forget)
+      try {
+        const { data: affData } = await supabase
+          .from("affiliates")
+          .select("referral_code, profiles(full_name)")
+          .eq("id", affiliateId)
+          .single();
+        const affiliateName = (affData as any)?.profiles?.full_name || "";
+        const referralCode = affData?.referral_code || "";
+        supabase.functions.invoke("sync-referral-rdstation", {
+          body: {
+            referral_id: insertedData?.id,
+            referred_name: name.trim(),
+            referred_phone: phone.trim(),
+            referred_email: email.trim() || null,
+            affiliate_name: affiliateName,
+            referral_code: referralCode,
+          },
+        });
+      } catch (e) {
+        console.error("RD Station sync error:", e);
+      }
     }
     setLoading(false);
   };

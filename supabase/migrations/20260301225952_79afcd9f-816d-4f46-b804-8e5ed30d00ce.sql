@@ -1,0 +1,1 @@
+ALTER TABLE public.referrals ADD COLUMN rdstation_deal_id text DEFAULT NULL;
