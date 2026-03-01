@@ -89,16 +89,38 @@ export default function AffiliateDashboard() {
     e.preventDefault();
     if (!affiliate) return;
     setSubmitting(true);
-    const { error } = await supabase.from("referrals").insert({
+    const { data: insertedData, error } = await supabase.from("referrals").insert({
       affiliate_id: affiliate.id,
       referred_name: refName.trim(),
       referred_phone: refPhone.trim(),
       referred_email: refEmail.trim() || null,
-    });
+    }).select("id").single();
     if (error) {
       toast({ title: "Erro", description: "Não foi possível enviar.", variant: "destructive" });
     } else {
       toast({ title: "Indicação enviada!" });
+      // Sync with RD Station CRM (fire and forget)
+      try {
+        const { data: affData } = await supabase
+          .from("affiliates")
+          .select("referral_code, profiles(full_name)")
+          .eq("id", affiliate.id)
+          .single();
+        const affiliateName = (affData as any)?.profiles?.full_name || "";
+        const referralCode = affData?.referral_code || "";
+        supabase.functions.invoke("sync-referral-rdstation", {
+          body: {
+            referral_id: insertedData?.id,
+            referred_name: refName.trim(),
+            referred_phone: refPhone.trim(),
+            referred_email: refEmail.trim() || null,
+            affiliate_name: affiliateName,
+            referral_code: referralCode,
+          },
+        });
+      } catch (e) {
+        console.error("RD Station sync error:", e);
+      }
       setRefName(""); setRefPhone(""); setRefEmail("");
       // refresh
       const { data } = await supabase.from("referrals").select("*").eq("affiliate_id", affiliate.id).order("created_at", { ascending: false });
