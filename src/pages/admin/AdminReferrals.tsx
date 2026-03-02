@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Search } from "lucide-react";
 
 interface Referral {
   id: string;
@@ -33,6 +35,7 @@ const STATUS_OPTIONS = ["pending", "contacted", "scheduled", "attended", "conver
 export default function AdminReferrals() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -65,7 +68,10 @@ export default function AdminReferrals() {
     return acc;
   }, {});
 
-  const filtered = filterStatus === "all" ? referrals : referrals.filter(r => r.status === filterStatus);
+  const searchLower = search.toLowerCase();
+  const filtered = referrals
+    .filter(r => filterStatus === "all" || r.status === filterStatus)
+    .filter(r => !search || r.referred_name.toLowerCase().includes(searchLower) || r.referred_phone.includes(search));
 
   const FILTER_OPTIONS = [
     { value: "all", label: "Todos" },
@@ -74,6 +80,15 @@ export default function AdminReferrals() {
 
   return (
     <div className="space-y-4">
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por nome ou telefone..."
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          className="pl-9"
+        />
+      </div>
       <div className="flex flex-wrap gap-2">
         {FILTER_OPTIONS.map(opt => (
           <Button
