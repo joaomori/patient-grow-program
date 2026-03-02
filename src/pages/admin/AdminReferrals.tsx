@@ -32,6 +32,7 @@ const STATUS_OPTIONS = ["pending", "contacted", "scheduled", "attended", "conver
 
 export default function AdminReferrals() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const { toast } = useToast();
 
   const fetchData = async () => {
@@ -59,8 +60,36 @@ export default function AdminReferrals() {
     return <Badge variant={cfg.variant} className={cfg.className}>{cfg.label}</Badge>;
   };
 
+  const counts = referrals.reduce<Record<string, number>>((acc, r) => {
+    acc[r.status] = (acc[r.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const filtered = filterStatus === "all" ? referrals : referrals.filter(r => r.status === filterStatus);
+
+  const FILTER_OPTIONS = [
+    { value: "all", label: "Todos" },
+    ...STATUS_OPTIONS.map(s => ({ value: s, label: STATUS_CONFIG[s].label })),
+  ];
+
   return (
-    <div className="rounded-lg border bg-background">
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {FILTER_OPTIONS.map(opt => (
+          <Button
+            key={opt.value}
+            variant={filterStatus === opt.value ? "default" : "outline"}
+            size="sm"
+            onClick={() => setFilterStatus(opt.value)}
+          >
+            {opt.label}
+            {opt.value === "all"
+              ? ` (${referrals.length})`
+              : counts[opt.value] ? ` (${counts[opt.value]})` : ""}
+          </Button>
+        ))}
+      </div>
+      <div className="rounded-lg border bg-background">
       <Table>
         <TableHeader>
           <TableRow>
@@ -73,7 +102,7 @@ export default function AdminReferrals() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {referrals.map(r => (
+          {filtered.map(r => (
             <TableRow key={r.id}>
               <TableCell>{r.referred_name}</TableCell>
               <TableCell>{r.referred_phone}</TableCell>
@@ -96,7 +125,7 @@ export default function AdminReferrals() {
               </TableCell>
             </TableRow>
           ))}
-          {referrals.length === 0 && (
+          {filtered.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                 Nenhuma indicação registrada
@@ -105,6 +134,7 @@ export default function AdminReferrals() {
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
