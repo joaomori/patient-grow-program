@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Search, Pencil, MessageCircle, Plus } from "lucide-react";
+import { Search, Pencil, MessageCircle, Plus, List, Columns3 } from "lucide-react";
+import KanbanBoard from "@/components/admin/KanbanBoard";
 import { formatWhatsAppUrl } from "@/lib/whatsapp";
 
 interface Referral {
@@ -47,6 +48,7 @@ export default function AdminReferrals() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [editingReferral, setEditingReferral] = useState<Referral | null>(null);
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", status: "", deal_value: "" });
   const [saving, setSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
@@ -178,6 +180,14 @@ export default function AdminReferrals() {
           <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova Indicação</Button>
+        <div className="flex border rounded-md">
+          <Button variant={viewMode === "table" ? "default" : "ghost"} size="icon" className="h-9 w-9 rounded-r-none" onClick={() => setViewMode("table")} title="Tabela">
+            <List className="h-4 w-4" />
+          </Button>
+          <Button variant={viewMode === "kanban" ? "default" : "ghost"} size="icon" className="h-9 w-9 rounded-l-none" onClick={() => setViewMode("kanban")} title="Kanban">
+            <Columns3 className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
       <div className="flex flex-wrap gap-2">
         {FILTER_OPTIONS.map(opt => (
@@ -186,6 +196,9 @@ export default function AdminReferrals() {
           </Button>
         ))}
       </div>
+      {viewMode === "kanban" ? (
+        <KanbanBoard referrals={filtered} updateStatus={updateStatus} openEdit={openEdit} formatWhatsAppUrl={formatWhatsAppUrl} />
+      ) : (
       <div className="rounded-lg border bg-background">
         <Table>
           <TableHeader>
@@ -242,6 +255,7 @@ export default function AdminReferrals() {
           </TableBody>
         </Table>
       </div>
+      )}
 
       <Dialog open={!!editingReferral} onOpenChange={(open) => !open && setEditingReferral(null)}>
         <DialogContent>
