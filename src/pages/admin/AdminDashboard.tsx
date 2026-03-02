@@ -1,19 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, UserCheck, Gift, TrendingUp, LogOut, DollarSign, BarChart3 } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
-import { format, subMonths, startOfMonth } from "date-fns";
+import { Users, UserCheck, Gift, TrendingUp, DollarSign, BarChart3 } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { format, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import AdminAffiliates from "./AdminAffiliates";
-import AdminReferrals from "./AdminReferrals";
-import AdminRewardRules from "./AdminRewardRules";
-import AdminRewards from "./AdminRewards";
-
 const PIE_COLORS = ["hsl(220,14%,70%)", "hsl(210,40%,60%)", "hsl(210,70%,50%)", "hsl(45,80%,50%)", "hsl(140,60%,45%)", "hsl(0,70%,55%)"];
 
 interface ReferralRow {
@@ -26,7 +18,7 @@ interface ReferralRow {
 }
 
 export default function AdminDashboard() {
-  const { signOut } = useAuth();
+  
   const [stats, setStats] = useState({ affiliates: 0, referrals: 0, confirmed: 0, rewards: 0 });
   const [revenue, setRevenue] = useState(0);
   const [monthlyData, setMonthlyData] = useState<{ month: string; count: number }[]>([]);
@@ -112,16 +104,8 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <header className="border-b bg-background px-4 py-3 flex items-center justify-between">
-        <h1 className="text-xl font-bold">Painel Admin — Dr. Erick</h1>
-        <Button variant="ghost" size="sm" onClick={signOut}>
-          <LogOut className="mr-2 h-4 w-4" /> Sair
-        </Button>
-      </header>
-
-      <main className="mx-auto max-w-6xl p-4 space-y-6">
-        {/* Stat cards */}
+    <div className="p-4 md:p-6 space-y-6 max-w-6xl mx-auto">
+      {/* Stat cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {statCards.map(s => (
             <Card key={s.label}>
@@ -204,20 +188,6 @@ export default function AdminDashboard() {
           </Card>
         )}
 
-        {/* Tabs */}
-        <Tabs defaultValue="affiliates">
-          <TabsList>
-            <TabsTrigger value="affiliates">Afiliados</TabsTrigger>
-            <TabsTrigger value="referrals">Indicações</TabsTrigger>
-            <TabsTrigger value="rules">Regras</TabsTrigger>
-            <TabsTrigger value="rewards">Recompensas</TabsTrigger>
-          </TabsList>
-          <TabsContent value="affiliates"><AdminAffiliates /></TabsContent>
-          <TabsContent value="referrals"><AdminReferrals /></TabsContent>
-          <TabsContent value="rules"><AdminRewardRules /></TabsContent>
-          <TabsContent value="rewards"><AdminRewards /></TabsContent>
-        </Tabs>
-      </main>
     </div>
   );
 }
