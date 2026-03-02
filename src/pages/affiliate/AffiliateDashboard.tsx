@@ -68,7 +68,7 @@ export default function AffiliateDashboard() {
       ]);
       if (refs.data) {
         setReferrals(refs.data);
-        setConfirmedCount(refs.data.filter(r => r.status === "confirmed").length);
+        setConfirmedCount(refs.data.filter(r => r.status === "converted" || r.status === "confirmed").length);
       }
       if (rews.data) setRewards(rews.data as unknown as Reward[]);
       if (rls.data) setRules(rls.data);
@@ -126,7 +126,7 @@ export default function AffiliateDashboard() {
       const { data } = await supabase.from("referrals").select("*").eq("affiliate_id", affiliate.id).order("created_at", { ascending: false });
       if (data) {
         setReferrals(data);
-        setConfirmedCount(data.filter(r => r.status === "confirmed").length);
+        setConfirmedCount(data.filter(r => r.status === "converted" || r.status === "confirmed").length);
       }
     }
     setSubmitting(false);
@@ -232,8 +232,21 @@ export default function AffiliateDashboard() {
                     <TableCell>{r.referred_name}</TableCell>
                     <TableCell>{r.referred_phone}</TableCell>
                     <TableCell>
-                      <Badge variant={r.status === "confirmed" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>
-                        {r.status === "confirmed" ? "Confirmada" : r.status === "rejected" ? "Rejeitada" : "Pendente"}
+                      <Badge
+                        variant={
+                          r.status === "rejected" ? "destructive"
+                          : r.status === "contacted" ? "outline"
+                          : r.status === "pending" ? "secondary"
+                          : undefined
+                        }
+                        className={
+                          r.status === "scheduled" ? "border-transparent bg-blue-100 text-blue-800"
+                          : r.status === "attended" ? "border-transparent bg-yellow-100 text-yellow-800"
+                          : (r.status === "converted" || r.status === "confirmed") ? "border-transparent bg-green-100 text-green-800"
+                          : undefined
+                        }
+                      >
+                        {{ pending: "Pendente", contacted: "Contatado", scheduled: "Agendado", attended: "Atendido", converted: "Convertido", confirmed: "Confirmada", rejected: "Rejeitada" }[r.status] ?? r.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm">{format(new Date(r.created_at), "dd/MM/yyyy")}</TableCell>
