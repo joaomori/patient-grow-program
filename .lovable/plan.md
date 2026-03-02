@@ -1,58 +1,47 @@
 
-# Integração com RD Station CRM
 
-## Objetivo
-Enviar automaticamente cada indicação cadastrada para o RD Station CRM como um **contato + negociação (deal)**, identificando quem indicou (afiliado) nos dados do deal.
+# Adicionar novos status nas indicações
 
-## O que você precisa fornecer
-- **Token de API do RD Station CRM** (encontrado em Configurações > Integrações > Token da API no seu RD Station CRM). A API v1 usa autenticação por token via query parameter.
+## Situação atual
+As indicações possuem 3 status: **Pendente**, **Confirmada** e **Rejeitada**.
 
-## Como vai funcionar
+## Novos status
+Vamos adicionar 4 novos status, criando um fluxo completo:
 
-### 1. Backend function: `sync-referral-rdstation`
-Cria uma função backend que recebe os dados da indicação e:
-1. Cria um **contato** no RD Station CRM com nome, telefone e email do indicado
-2. Cria uma **negociação (deal)** vinculada a esse contato, com o nome do afiliado que indicou no título (ex: "Indicação de Maria Silva - João da Silva")
-3. Retorna o ID do deal criado
+**Pendente** → **Contatado** → **Agendado** → **Atendido** → **Convertido**
 
-Endpoints utilizados:
-- `POST https://crm.rdstation.com/api/v1/contacts?token=TOKEN` - criar contato
-- `POST https://crm.rdstation.com/api/v1/deals?token=TOKEN` - criar deal vinculado ao contato
+E o status **Rejeitada** continua disponível em qualquer etapa.
 
-### 2. Integração nos fluxos existentes
-Dois pontos de envio para o RD Station:
+## Alterações
 
-- **Formulário público** (`PublicReferral.tsx`): Após inserir a indicação no banco, chama a function para sincronizar com o CRM
-- **Formulário do afiliado** (`AffiliateDashboard.tsx`): Mesmo comportamento após inserir a indicação
-- **Confirmação pelo admin** (`AdminReferrals.tsx`): Opcionalmente atualiza o deal no RD Station ao confirmar/rejeitar
+### 1. Painel Admin (`AdminReferrals.tsx`)
+- Atualizar a função `statusBadge` para exibir os 6 status com cores distintas
+- Substituir os botões "Confirmar/Rejeitar" por um dropdown/select que permite avançar o status para qualquer etapa
+- Manter o botão "Rejeitar" disponível em todas as etapas (exceto "Convertido" e "Rejeitada")
+- Ao marcar como "Convertido", preencher o campo `confirmed_at` (equivalente à conversão final)
 
-### 3. Rastreamento do afiliado no CRM
-O deal criado no RD Station incluirá:
-- **Titulo**: "Indicação - [Nome do Indicado]"
-- **Campo de notas/descrição**: "Indicado por: [Nome do Afiliado] (código: [referral_code])"
+### 2. Painel do Afiliado (`AffiliateDashboard.tsx`)
+- Atualizar o Badge para mostrar os novos status traduzidos em português
+- O afiliado continua apenas visualizando (sem ações)
 
-Isso permite filtrar e pontuar no RD Station quem indicou.
+### 3. Mapeamento de cores dos status
 
----
+| Status | Label | Cor |
+|--------|-------|-----|
+| pending | Pendente | secondary (cinza) |
+| contacted | Contatado | outline (borda) |
+| scheduled | Agendado | azul (custom) |
+| attended | Atendido | amarelo (custom) |
+| converted | Convertido | verde (default/primary) |
+| rejected | Rejeitada | destructive (vermelho) |
+
+### 4. Contagem de conversões
+- Atualizar a lógica de `confirmedCount` no `AffiliateDashboard` para contar status `converted` (em vez de `confirmed`) para o progresso de recompensas
 
 ## Detalhes Técnicos
 
-### Edge Function `sync-referral-rdstation`
-```text
-supabase/functions/sync-referral-rdstation/index.ts
-```
-- Recebe: `{ referred_name, referred_phone, referred_email, affiliate_name, referral_code }`
-- Cria contato via API v1 do RD Station CRM
-- Cria deal vinculado ao contato, com dados do afiliado na descrição
-- Retorna sucesso/erro
+- Nenhuma migration necessaria -- o campo `status` e do tipo `text`, entao aceita qualquer valor
+- Adicionar variantes de cor ao Badge usando `className` com Tailwind para os status que nao tem variante nativa (azul, amarelo, verde)
+- No admin, usar um `Select` (radix) com as opcoes de status para transicionar a indicacao
+- Manter compatibilidade com o status antigo `confirmed` mapeando-o para "Confirmada" na exibicao
 
-### Configuração necessária
-- Adicionar secret `RDSTATION_CRM_TOKEN` com o token da API do RD Station CRM
-
-### Alterações no frontend
-- `PublicReferral.tsx`: Após insert bem-sucedido, chama a edge function
-- `AffiliateDashboard.tsx`: Após insert bem-sucedido, chama a edge function
-- Ambos buscarão o nome do afiliado para enviar junto com os dados
-
-### Banco de dados
-- Adicionar coluna `rdstation_deal_id` na tabela `referrals` para rastrear o ID do deal criado (opcional, mas recomendado)
