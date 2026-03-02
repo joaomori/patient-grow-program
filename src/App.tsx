@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import PublicReferral from "./pages/PublicReferral";
+import LandingAfiliados from "./pages/LandingAfiliados";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AffiliateDashboard from "./pages/affiliate/AffiliateDashboard";
 import NotFound from "./pages/NotFound";
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/indicar" element={<PublicReferral />} />
+            <Route path="/seja-afiliado" element={<LandingAfiliados />} />
             <Route
               path="/admin"
               element={
