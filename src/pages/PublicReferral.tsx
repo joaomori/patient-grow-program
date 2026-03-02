@@ -6,7 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, ShieldCheck, CalendarCheck, Heart } from "lucide-react";
+
+const trustItems = [
+  { icon: ShieldCheck, text: "Profissional qualificado e experiente" },
+  { icon: CalendarCheck, text: "Agendamento rápido e sem burocracia" },
+  { icon: Heart, text: "Atendimento humanizado e personalizado" },
+];
 
 export default function PublicReferral() {
   const [searchParams] = useSearchParams();
@@ -50,7 +56,6 @@ export default function PublicReferral() {
       toast({ title: "Erro", description: "Não foi possível enviar a indicação.", variant: "destructive" });
     } else {
       setSubmitted(true);
-      // Sync with RD Station CRM (fire and forget)
       try {
         const { data: affData } = await supabase
           .from("affiliates")
@@ -106,34 +111,59 @@ export default function PublicReferral() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Indicação — Dr. Erick</CardTitle>
-          <CardDescription>Preencha seus dados para agendar uma consulta</CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit}>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome completo</Label>
-              <Input id="name" value={name} onChange={e => setName(e.target.value)} required placeholder="Seu nome" />
+    <div className="min-h-screen bg-background">
+      {/* Hero */}
+      <section className="bg-primary text-primary-foreground py-16 text-center px-4">
+        <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">Dr. Erick</h1>
+        <p className="mt-2 text-primary-foreground/80 text-lg">Agende sua consulta agora mesmo</p>
+      </section>
+
+      {/* Confiança */}
+      <section className="mx-auto max-w-2xl px-4 py-10">
+        <div className="grid gap-4 sm:grid-cols-3">
+          {trustItems.map(t => (
+            <div key={t.text} className="flex items-start gap-3 rounded-lg border p-4">
+              <t.icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+              <span className="text-sm text-muted-foreground">{t.text}</span>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telefone</Label>
-              <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="(11) 99999-0000" />
+          ))}
+        </div>
+      </section>
+
+      {/* Formulário */}
+      <section className="mx-auto max-w-md px-4 pb-16">
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Preencha seus dados</CardTitle>
+            <CardDescription>Entraremos em contato para agendar sua consulta</CardDescription>
+          </CardHeader>
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome completo</Label>
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} required placeholder="Seu nome" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone</Label>
+                <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="(11) 99999-0000" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email (opcional)</Label>
+                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+              </div>
+            </CardContent>
+            <div className="px-6 pb-6">
+              <Button type="submit" className="w-full" disabled={loading || !affiliateId}>
+                {loading ? "Enviando..." : "Enviar indicação"}
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email (opcional)</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
-            </div>
-          </CardContent>
-          <div className="px-6 pb-6">
-            <Button type="submit" className="w-full" disabled={loading || !affiliateId}>
-              {loading ? "Enviando..." : "Enviar indicação"}
-            </Button>
-          </div>
-        </form>
-      </Card>
+          </form>
+        </Card>
+      </section>
+
+      <footer className="border-t py-6 text-center text-xs text-muted-foreground">
+        © {new Date().getFullYear()} Dr. Erick — Programa de Indicações
+      </footer>
     </div>
   );
 }

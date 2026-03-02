@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Search, Pencil } from "lucide-react";
+import { Search, Pencil, MessageCircle } from "lucide-react";
+import { formatWhatsAppUrl } from "@/lib/whatsapp";
 
 interface Referral {
   id: string;
@@ -19,6 +20,7 @@ interface Referral {
   status: string;
   created_at: string;
   confirmed_at: string | null;
+  deal_value: number | null;
   affiliates?: { referral_code: string; profiles?: { full_name: string | null } | null } | null;
 }
 
@@ -39,12 +41,18 @@ export default function AdminReferrals() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [editingReferral, setEditingReferral] = useState<Referral | null>(null);
-  const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", status: "" });
+  const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", status: "", deal_value: "" });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const openEdit = (r: Referral) => {
-    setEditForm({ referred_name: r.referred_name, referred_phone: r.referred_phone, referred_email: r.referred_email ?? "", status: r.status });
+    setEditForm({
+      referred_name: r.referred_name,
+      referred_phone: r.referred_phone,
+      referred_email: r.referred_email ?? "",
+      status: r.status,
+      deal_value: r.deal_value != null ? String(r.deal_value) : "",
+    });
     setEditingReferral(r);
   };
 
@@ -60,6 +68,7 @@ export default function AdminReferrals() {
       referred_phone: editForm.referred_phone.trim(),
       referred_email: editForm.referred_email.trim(),
       status: editForm.status,
+      deal_value: editForm.deal_value ? parseFloat(editForm.deal_value) : null,
     };
     if (editForm.status === "converted" && editingReferral.status !== "converted") {
       updates.confirmed_at = new Date().toISOString();
@@ -115,78 +124,70 @@ export default function AdminReferrals() {
     <div className="space-y-4">
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar por nome ou telefone..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="pl-9"
-        />
+        <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
       <div className="flex flex-wrap gap-2">
         {FILTER_OPTIONS.map(opt => (
-          <Button
-            key={opt.value}
-            variant={filterStatus === opt.value ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus(opt.value)}
-          >
-            {opt.label}
-            {opt.value === "all"
-              ? ` (${referrals.length})`
-              : counts[opt.value] ? ` (${counts[opt.value]})` : ""}
+          <Button key={opt.value} variant={filterStatus === opt.value ? "default" : "outline"} size="sm" onClick={() => setFilterStatus(opt.value)}>
+            {opt.label}{opt.value === "all" ? ` (${referrals.length})` : counts[opt.value] ? ` (${counts[opt.value]})` : ""}
           </Button>
         ))}
       </div>
       <div className="rounded-lg border bg-background">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Indicado</TableHead>
-            <TableHead>Telefone</TableHead>
-            <TableHead>Afiliado</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Data</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map(r => (
-            <TableRow key={r.id}>
-              <TableCell>{r.referred_name}</TableCell>
-              <TableCell>{r.referred_phone}</TableCell>
-              <TableCell>{r.affiliates?.profiles?.full_name ?? r.affiliates?.referral_code ?? "—"}</TableCell>
-              <TableCell>{statusBadge(r.status)}</TableCell>
-              <TableCell className="text-sm">{format(new Date(r.created_at), "dd/MM/yyyy")}</TableCell>
-              <TableCell>
-                <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  {r.status !== "converted" && r.status !== "confirmed" && r.status !== "rejected" && (
-                    <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v)}>
-                      <SelectTrigger className="w-[140px] h-8 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUS_OPTIONS.map(s => (
-                          <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              </TableCell>
-            </TableRow>
-          ))}
-          {filtered.length === 0 && (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                Nenhuma indicação registrada
-              </TableCell>
+              <TableHead>Indicado</TableHead>
+              <TableHead>Telefone</TableHead>
+              <TableHead>Afiliado</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Data</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {filtered.map(r => (
+              <TableRow key={r.id}>
+                <TableCell>{r.referred_name}</TableCell>
+                <TableCell>{r.referred_phone}</TableCell>
+                <TableCell>{r.affiliates?.profiles?.full_name ?? r.affiliates?.referral_code ?? "—"}</TableCell>
+                <TableCell>{statusBadge(r.status)}</TableCell>
+                <TableCell className="text-sm">{r.deal_value != null ? `R$ ${r.deal_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</TableCell>
+                <TableCell className="text-sm">{format(new Date(r.created_at), "dd/MM/yyyy")}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(formatWhatsAppUrl(r.referred_phone), "_blank")} title="WhatsApp">
+                      <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    {r.status !== "converted" && r.status !== "confirmed" && r.status !== "rejected" && (
+                      <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v)}>
+                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {STATUS_OPTIONS.map(s => (
+                            <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+            {filtered.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  Nenhuma indicação registrada
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
 
       <Dialog open={!!editingReferral} onOpenChange={(open) => !open && setEditingReferral(null)}>
@@ -219,6 +220,10 @@ export default function AdminReferrals() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor do procedimento (R$)</Label>
+              <Input type="number" step="0.01" min="0" placeholder="Ex: 1500.00" value={editForm.deal_value} onChange={e => setEditForm(f => ({ ...f, deal_value: e.target.value }))} />
             </div>
           </div>
           <DialogFooter>

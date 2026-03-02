@@ -78,6 +78,7 @@ export type Database = {
           affiliate_id: string
           confirmed_at: string | null
           created_at: string
+          deal_value: number | null
           id: string
           rdstation_deal_id: string | null
           referred_email: string | null
@@ -89,6 +90,7 @@ export type Database = {
           affiliate_id: string
           confirmed_at?: string | null
           created_at?: string
+          deal_value?: number | null
           id?: string
           rdstation_deal_id?: string | null
           referred_email?: string | null
@@ -100,6 +102,7 @@ export type Database = {
           affiliate_id?: string
           confirmed_at?: string | null
           created_at?: string
+          deal_value?: number | null
           id?: string
           rdstation_deal_id?: string | null
           referred_email?: string | null

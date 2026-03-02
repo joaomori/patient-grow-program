@@ -1,0 +1,1 @@
+ALTER TABLE public.referrals ADD COLUMN deal_value numeric DEFAULT NULL;
