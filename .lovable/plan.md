@@ -1,47 +1,37 @@
 
+# Filtros por Status + Ajuste SEO
 
-# Adicionar novos status nas indicações
+## 1. Filtros por status no Admin (`AdminReferrals.tsx`)
+Adicionar uma barra de filtros acima da tabela com botoes/badges clicaveis para cada status, permitindo filtrar as indicacoes exibidas.
 
-## Situação atual
-As indicações possuem 3 status: **Pendente**, **Confirmada** e **Rejeitada**.
+- Adicionar estado `filterStatus` (valor padrao: `"all"`)
+- Renderizar uma linha de botoes/badges horizontais: **Todos**, **Pendente**, **Contatado**, **Agendado**, **Atendido**, **Convertido**, **Rejeitada**
+- Filtrar a lista `referrals` no frontend com base no status selecionado (sem nova query ao banco)
+- Mostrar contagem de cada status nos botoes (ex: "Pendente (3)")
+- Botao ativo recebe estilo destacado
 
-## Novos status
-Vamos adicionar 4 novos status, criando um fluxo completo:
+## 2. Ajuste SEO (`index.html` e `PublicReferral.tsx`)
 
-**Pendente** → **Contatado** → **Agendado** → **Atendido** → **Convertido**
+### index.html
+- Alterar `lang="en"` para `lang="pt-BR"`
+- Titulo: "Dr. Erick - Programa de Indicacoes"
+- Description: "Indique amigos e familiares para o Dr. Erick e ganhe recompensas exclusivas."
+- Atualizar og:title, og:description e remover referencias ao Lovable
+- Remover twitter:site @Lovable
 
-E o status **Rejeitada** continua disponível em qualquer etapa.
+### robots.txt
+- Manter como esta (ja permite todos os bots)
 
-## Alterações
+## Detalhes Tecnicos
 
-### 1. Painel Admin (`AdminReferrals.tsx`)
-- Atualizar a função `statusBadge` para exibir os 6 status com cores distintas
-- Substituir os botões "Confirmar/Rejeitar" por um dropdown/select que permite avançar o status para qualquer etapa
-- Manter o botão "Rejeitar" disponível em todas as etapas (exceto "Convertido" e "Rejeitada")
-- Ao marcar como "Convertido", preencher o campo `confirmed_at` (equivalente à conversão final)
+### AdminReferrals.tsx
+- Novo estado: `const [filterStatus, setFilterStatus] = useState<string>("all")`
+- Calcular contagens: `const counts = referrals.reduce(...)` para cada status
+- Filtrar: `const filtered = filterStatus === "all" ? referrals : referrals.filter(r => r.status === filterStatus)`
+- Renderizar barra de filtros com `Button` variant outline/default baseado na selecao
+- Usar `filtered` no map da tabela em vez de `referrals`
 
-### 2. Painel do Afiliado (`AffiliateDashboard.tsx`)
-- Atualizar o Badge para mostrar os novos status traduzidos em português
-- O afiliado continua apenas visualizando (sem ações)
-
-### 3. Mapeamento de cores dos status
-
-| Status | Label | Cor |
-|--------|-------|-----|
-| pending | Pendente | secondary (cinza) |
-| contacted | Contatado | outline (borda) |
-| scheduled | Agendado | azul (custom) |
-| attended | Atendido | amarelo (custom) |
-| converted | Convertido | verde (default/primary) |
-| rejected | Rejeitada | destructive (vermelho) |
-
-### 4. Contagem de conversões
-- Atualizar a lógica de `confirmedCount` no `AffiliateDashboard` para contar status `converted` (em vez de `confirmed`) para o progresso de recompensas
-
-## Detalhes Técnicos
-
-- Nenhuma migration necessaria -- o campo `status` e do tipo `text`, entao aceita qualquer valor
-- Adicionar variantes de cor ao Badge usando `className` com Tailwind para os status que nao tem variante nativa (azul, amarelo, verde)
-- No admin, usar um `Select` (radix) com as opcoes de status para transicionar a indicacao
-- Manter compatibilidade com o status antigo `confirmed` mapeando-o para "Confirmada" na exibicao
-
+### index.html
+- Atualizar title, meta description, og:title, og:description
+- Mudar lang para pt-BR
+- Remover referencias ao Lovable nas meta tags
