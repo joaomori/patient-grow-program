@@ -39,12 +39,12 @@ export default function AdminReferrals() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [editingReferral, setEditingReferral] = useState<Referral | null>(null);
-  const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "" });
+  const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", status: "" });
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const openEdit = (r: Referral) => {
-    setEditForm({ referred_name: r.referred_name, referred_phone: r.referred_phone, referred_email: r.referred_email ?? "" });
+    setEditForm({ referred_name: r.referred_name, referred_phone: r.referred_phone, referred_email: r.referred_email ?? "", status: r.status });
     setEditingReferral(r);
   };
 
@@ -55,11 +55,16 @@ export default function AdminReferrals() {
       return;
     }
     setSaving(true);
-    await supabase.from("referrals").update({
+    const updates: Record<string, unknown> = {
       referred_name: editForm.referred_name.trim(),
       referred_phone: editForm.referred_phone.trim(),
       referred_email: editForm.referred_email.trim(),
-    }).eq("id", editingReferral.id);
+      status: editForm.status,
+    };
+    if (editForm.status === "converted" && editingReferral.status !== "converted") {
+      updates.confirmed_at = new Date().toISOString();
+    }
+    await supabase.from("referrals").update(updates).eq("id", editingReferral.id);
     toast({ title: "Indicação atualizada" });
     setEditingReferral(null);
     setSaving(false);
@@ -201,6 +206,19 @@ export default function AdminReferrals() {
             <div className="space-y-2">
               <Label>Email *</Label>
               <Input type="email" required value={editForm.referred_email} onChange={e => setEditForm(f => ({ ...f, referred_email: e.target.value }))} placeholder="Obrigatório para o CRM" />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map(s => (
+                    <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
