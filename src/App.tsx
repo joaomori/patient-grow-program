@@ -16,6 +16,7 @@ import AdminReferrals from "./pages/admin/AdminReferrals";
 import AdminRewardRules from "./pages/admin/AdminRewardRules";
 import AdminRewards from "./pages/admin/AdminRewards";
 import AdminReports from "./pages/admin/AdminReports";
+import AdminKanban from "./pages/admin/AdminKanban";
 import AffiliateDashboard from "./pages/affiliate/AffiliateDashboard";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import NotFound from "./pages/NotFound";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/admin" element={<AdminPage><AdminDashboard /></AdminPage>} />
             <Route path="/admin/afiliados" element={<AdminPage><AdminAffiliates /></AdminPage>} />
             <Route path="/admin/indicacoes" element={<AdminPage><AdminReferrals /></AdminPage>} />
+            <Route path="/admin/kanban" element={<AdminPage><AdminKanban /></AdminPage>} />
             <Route path="/admin/regras" element={<AdminPage><AdminRewardRules /></AdminPage>} />
             <Route path="/admin/recompensas" element={<AdminPage><AdminRewards /></AdminPage>} />
             <Route path="/admin/relatorios" element={<AdminPage><AdminReports /></AdminPage>} />
