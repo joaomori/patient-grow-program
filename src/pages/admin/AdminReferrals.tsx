@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Search, Pencil, MessageCircle } from "lucide-react";
+import { Search, Pencil, MessageCircle, Plus } from "lucide-react";
 import { formatWhatsAppUrl } from "@/lib/whatsapp";
 
 interface Referral {
@@ -36,6 +36,12 @@ const STATUS_CONFIG: Record<string, { label: string; variant?: "default" | "seco
 
 const STATUS_OPTIONS = ["pending", "contacted", "scheduled", "attended", "converted", "rejected"] as const;
 
+interface Affiliate {
+  id: string;
+  referral_code: string;
+  profiles?: { full_name: string | null } | null;
+}
+
 export default function AdminReferrals() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -43,6 +49,9 @@ export default function AdminReferrals() {
   const [editingReferral, setEditingReferral] = useState<Referral | null>(null);
   const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", status: "", deal_value: "" });
   const [saving, setSaving] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [createForm, setCreateForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", affiliate_id: "" });
+  const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const { toast } = useToast();
 
   const openEdit = (r: Referral) => {
@@ -88,7 +97,48 @@ export default function AdminReferrals() {
     if (data) setReferrals(data as unknown as Referral[]);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchAffiliates = async () => {
+    const { data } = await supabase
+      .from("affiliates")
+      .select("id, referral_code, profiles(full_name)")
+      .eq("is_active", true)
+      .order("referral_code");
+    if (data) setAffiliates(data as unknown as Affiliate[]);
+  };
+
+  useEffect(() => { fetchData(); fetchAffiliates(); }, []);
+
+  const openCreate = () => {
+    setCreateForm({ referred_name: "", referred_phone: "", referred_email: "", affiliate_id: "" });
+    setShowCreate(true);
+  };
+
+  const saveCreate = async () => {
+    if (!createForm.referred_name.trim() || !createForm.referred_phone.trim() || !createForm.affiliate_id) {
+      toast({ title: "Nome, telefone e afiliado são obrigatórios", variant: "destructive" });
+      return;
+    }
+    if (!createForm.referred_email.trim()) {
+      toast({ title: "Email é obrigatório", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from("referrals").insert({
+      referred_name: createForm.referred_name.trim(),
+      referred_phone: createForm.referred_phone.trim(),
+      referred_email: createForm.referred_email.trim(),
+      affiliate_id: createForm.affiliate_id,
+      status: "pending",
+    });
+    if (error) {
+      toast({ title: "Erro ao criar indicação", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Indicação criada com sucesso" });
+      setShowCreate(false);
+      fetchData();
+    }
+    setSaving(false);
+  };
 
   const updateStatus = async (id: string, newStatus: string) => {
     const updates: Record<string, unknown> = { status: newStatus };
@@ -122,9 +172,12 @@ export default function AdminReferrals() {
 
   return (
     <div className="space-y-4">
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex items-center gap-4">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Buscar por nome ou telefone..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova Indicação</Button>
       </div>
       <div className="flex flex-wrap gap-2">
         {FILTER_OPTIONS.map(opt => (
@@ -229,6 +282,47 @@ export default function AdminReferrals() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingReferral(null)}>Cancelar</Button>
             <Button onClick={saveEdit} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nova Indicação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Afiliado *</Label>
+              <Select value={createForm.affiliate_id} onValueChange={v => setCreateForm(f => ({ ...f, affiliate_id: v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o afiliado" />
+                </SelectTrigger>
+                <SelectContent>
+                  {affiliates.map(a => (
+                    <SelectItem key={a.id} value={a.id}>
+                      {a.profiles?.full_name || a.referral_code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Nome *</Label>
+              <Input value={createForm.referred_name} onChange={e => setCreateForm(f => ({ ...f, referred_name: e.target.value }))} placeholder="Nome do indicado" />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone *</Label>
+              <Input value={createForm.referred_phone} onChange={e => setCreateForm(f => ({ ...f, referred_phone: e.target.value }))} placeholder="(11) 99999-9999" />
+            </div>
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <Input type="email" value={createForm.referred_email} onChange={e => setCreateForm(f => ({ ...f, referred_email: e.target.value }))} placeholder="email@exemplo.com" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
+            <Button onClick={saveCreate} disabled={saving}>{saving ? "Salvando..." : "Criar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
