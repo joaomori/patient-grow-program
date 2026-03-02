@@ -1,4 +1,4 @@
-import { BarChart3, Users, Gift, TrendingUp, FileText, LayoutDashboard, LogOut } from "lucide-react";
+import { BarChart3, Users, Gift, TrendingUp, FileText, LayoutDashboard, LogOut, Columns3 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -20,6 +20,7 @@ const menuItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Afiliados", url: "/admin/afiliados", icon: Users },
   { title: "Indicações", url: "/admin/indicacoes", icon: TrendingUp },
+  { title: "Kanban", url: "/admin/kanban", icon: Columns3 },
   { title: "Regras", url: "/admin/regras", icon: Gift },
   { title: "Recompensas", url: "/admin/recompensas", icon: BarChart3 },
   { title: "Relatórios", url: "/admin/relatorios", icon: FileText },

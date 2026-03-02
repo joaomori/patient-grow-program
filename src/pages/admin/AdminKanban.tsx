@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { Search, Pencil, MessageCircle, Plus } from "lucide-react";
+import { Search, Plus } from "lucide-react";
+import KanbanBoard from "@/components/admin/KanbanBoard";
 import { formatWhatsAppUrl } from "@/lib/whatsapp";
 
 interface Referral {
@@ -24,14 +22,13 @@ interface Referral {
   affiliates?: { referral_code: string; profiles?: { full_name: string | null } | null } | null;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; variant?: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
-  pending: { label: "Pendente", variant: "secondary" },
-  contacted: { label: "Contatado", variant: "outline" },
-  scheduled: { label: "Agendado", className: "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-100/80" },
-  attended: { label: "Atendido", className: "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80" },
-  converted: { label: "Convertido", className: "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80" },
-  confirmed: { label: "Confirmada", className: "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80" },
-  rejected: { label: "Rejeitada", variant: "destructive" },
+const STATUS_CONFIG: Record<string, { label: string }> = {
+  pending: { label: "Pendente" },
+  contacted: { label: "Contatado" },
+  scheduled: { label: "Agendado" },
+  attended: { label: "Atendido" },
+  converted: { label: "Convertido" },
+  rejected: { label: "Rejeitado" },
 };
 
 const STATUS_OPTIONS = ["pending", "contacted", "scheduled", "attended", "converted", "rejected"] as const;
@@ -42,9 +39,8 @@ interface Affiliate {
   profiles?: { full_name: string | null } | null;
 }
 
-export default function AdminReferrals() {
+export default function AdminKanban() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
-  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [editingReferral, setEditingReferral] = useState<Referral | null>(null);
   const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", status: "", deal_value: "" });
@@ -53,6 +49,25 @@ export default function AdminReferrals() {
   const [createForm, setCreateForm] = useState({ referred_name: "", referred_phone: "", referred_email: "", affiliate_id: "" });
   const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
   const { toast } = useToast();
+
+  const fetchData = async () => {
+    const { data } = await supabase
+      .from("referrals")
+      .select("*, affiliates(referral_code, profiles(full_name))")
+      .order("created_at", { ascending: false });
+    if (data) setReferrals(data as unknown as Referral[]);
+  };
+
+  const fetchAffiliates = async () => {
+    const { data } = await supabase
+      .from("affiliates")
+      .select("id, referral_code, profiles(full_name)")
+      .eq("is_active", true)
+      .order("referral_code");
+    if (data) setAffiliates(data as unknown as Affiliate[]);
+  };
+
+  useEffect(() => { fetchData(); fetchAffiliates(); }, []);
 
   const openEdit = (r: Referral) => {
     setEditForm({
@@ -89,24 +104,15 @@ export default function AdminReferrals() {
     fetchData();
   };
 
-  const fetchData = async () => {
-    const { data } = await supabase
-      .from("referrals")
-      .select("*, affiliates(referral_code, profiles(full_name))")
-      .order("created_at", { ascending: false });
-    if (data) setReferrals(data as unknown as Referral[]);
+  const updateStatus = async (id: string, newStatus: string) => {
+    const updates: Record<string, unknown> = { status: newStatus };
+    if (newStatus === "converted") {
+      updates.confirmed_at = new Date().toISOString();
+    }
+    await supabase.from("referrals").update(updates).eq("id", id);
+    toast({ title: `Status atualizado para: ${STATUS_CONFIG[newStatus]?.label ?? newStatus}` });
+    fetchData();
   };
-
-  const fetchAffiliates = async () => {
-    const { data } = await supabase
-      .from("affiliates")
-      .select("id, referral_code, profiles(full_name)")
-      .eq("is_active", true)
-      .order("referral_code");
-    if (data) setAffiliates(data as unknown as Affiliate[]);
-  };
-
-  useEffect(() => { fetchData(); fetchAffiliates(); }, []);
 
   const openCreate = () => {
     setCreateForm({ referred_name: "", referred_phone: "", referred_email: "", affiliate_id: "" });
@@ -140,38 +146,11 @@ export default function AdminReferrals() {
     setSaving(false);
   };
 
-  const updateStatus = async (id: string, newStatus: string) => {
-    const updates: Record<string, unknown> = { status: newStatus };
-    if (newStatus === "converted") {
-      updates.confirmed_at = new Date().toISOString();
-    }
-    await supabase.from("referrals").update(updates).eq("id", id);
-    toast({ title: `Status atualizado para: ${STATUS_CONFIG[newStatus]?.label ?? newStatus}` });
-    fetchData();
-  };
-
-  const statusBadge = (s: string) => {
-    const cfg = STATUS_CONFIG[s] ?? { label: s, variant: "secondary" as const };
-    return <Badge variant={cfg.variant} className={cfg.className}>{cfg.label}</Badge>;
-  };
-
-  const counts = referrals.reduce<Record<string, number>>((acc, r) => {
-    acc[r.status] = (acc[r.status] || 0) + 1;
-    return acc;
-  }, {});
-
   const searchLower = search.toLowerCase();
-  const filtered = referrals
-    .filter(r => filterStatus === "all" || r.status === filterStatus)
-    .filter(r => !search || r.referred_name.toLowerCase().includes(searchLower) || r.referred_phone.includes(search));
-
-  const FILTER_OPTIONS = [
-    { value: "all", label: "Todos" },
-    ...STATUS_OPTIONS.map(s => ({ value: s, label: STATUS_CONFIG[s].label })),
-  ];
+  const filtered = referrals.filter(r => !search || r.referred_name.toLowerCase().includes(searchLower) || r.referred_phone.includes(search));
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-6">
       <div className="flex items-center gap-4">
         <div className="relative max-w-sm flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -179,75 +158,13 @@ export default function AdminReferrals() {
         </div>
         <Button onClick={openCreate}><Plus className="h-4 w-4 mr-1" /> Nova Indicação</Button>
       </div>
-      <div className="flex flex-wrap gap-2">
-        {FILTER_OPTIONS.map(opt => (
-          <Button key={opt.value} variant={filterStatus === opt.value ? "default" : "outline"} size="sm" onClick={() => setFilterStatus(opt.value)}>
-            {opt.label}{opt.value === "all" ? ` (${referrals.length})` : counts[opt.value] ? ` (${counts[opt.value]})` : ""}
-          </Button>
-        ))}
-      </div>
-      <div className="rounded-lg border bg-background">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Indicado</TableHead>
-              <TableHead>Telefone</TableHead>
-              <TableHead>Afiliado</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Valor</TableHead>
-              <TableHead>Data</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(r => (
-              <TableRow key={r.id}>
-                <TableCell>{r.referred_name}</TableCell>
-                <TableCell>{r.referred_phone}</TableCell>
-                <TableCell>{r.affiliates?.profiles?.full_name ?? r.affiliates?.referral_code ?? "—"}</TableCell>
-                <TableCell>{statusBadge(r.status)}</TableCell>
-                <TableCell className="text-sm">{r.deal_value != null ? `R$ ${r.deal_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</TableCell>
-                <TableCell className="text-sm">{format(new Date(r.created_at), "dd/MM/yyyy")}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => window.open(formatWhatsAppUrl(r.referred_phone), "_blank")} title="WhatsApp">
-                      <MessageCircle className="h-3.5 w-3.5 text-green-600" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    {r.status !== "converted" && r.status !== "confirmed" && r.status !== "rejected" && (
-                      <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v)}>
-                        <SelectTrigger className="w-[140px] h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {STATUS_OPTIONS.map(s => (
-                            <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  Nenhuma indicação registrada
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
 
+      <KanbanBoard referrals={filtered} updateStatus={updateStatus} openEdit={openEdit} formatWhatsAppUrl={formatWhatsAppUrl} />
+
+      {/* Edit Dialog */}
       <Dialog open={!!editingReferral} onOpenChange={(open) => !open && setEditingReferral(null)}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Editar Indicação</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Editar Indicação</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Nome</Label>
@@ -264,9 +181,7 @@ export default function AdminReferrals() {
             <div className="space-y-2">
               <Label>Status</Label>
               <Select value={editForm.status} onValueChange={v => setEditForm(f => ({ ...f, status: v }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {STATUS_OPTIONS.map(s => (
                     <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
@@ -286,23 +201,18 @@ export default function AdminReferrals() {
         </DialogContent>
       </Dialog>
 
+      {/* Create Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Nova Indicação</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Nova Indicação</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Afiliado *</Label>
               <Select value={createForm.affiliate_id} onValueChange={v => setCreateForm(f => ({ ...f, affiliate_id: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o afiliado" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o afiliado" /></SelectTrigger>
                 <SelectContent>
                   {affiliates.map(a => (
-                    <SelectItem key={a.id} value={a.id}>
-                      {a.profiles?.full_name || a.referral_code}
-                    </SelectItem>
+                    <SelectItem key={a.id} value={a.id}>{a.profiles?.full_name || a.referral_code}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
