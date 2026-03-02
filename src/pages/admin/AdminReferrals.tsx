@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -16,6 +17,18 @@ interface Referral {
   confirmed_at: string | null;
   affiliates?: { referral_code: string; profiles?: { full_name: string | null } | null } | null;
 }
+
+const STATUS_CONFIG: Record<string, { label: string; variant?: "default" | "secondary" | "destructive" | "outline"; className?: string }> = {
+  pending: { label: "Pendente", variant: "secondary" },
+  contacted: { label: "Contatado", variant: "outline" },
+  scheduled: { label: "Agendado", className: "border-transparent bg-blue-100 text-blue-800 hover:bg-blue-100/80" },
+  attended: { label: "Atendido", className: "border-transparent bg-yellow-100 text-yellow-800 hover:bg-yellow-100/80" },
+  converted: { label: "Convertido", className: "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80" },
+  confirmed: { label: "Confirmada", className: "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80" },
+  rejected: { label: "Rejeitada", variant: "destructive" },
+};
+
+const STATUS_OPTIONS = ["pending", "contacted", "scheduled", "attended", "converted", "rejected"] as const;
 
 export default function AdminReferrals() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
@@ -31,22 +44,19 @@ export default function AdminReferrals() {
 
   useEffect(() => { fetchData(); }, []);
 
-  const confirm = async (id: string) => {
-    await supabase.from("referrals").update({ status: "confirmed", confirmed_at: new Date().toISOString() }).eq("id", id);
-    toast({ title: "Indicação confirmada!" });
-    fetchData();
-  };
-
-  const reject = async (id: string) => {
-    await supabase.from("referrals").update({ status: "rejected" }).eq("id", id);
-    toast({ title: "Indicação rejeitada" });
+  const updateStatus = async (id: string, newStatus: string) => {
+    const updates: Record<string, unknown> = { status: newStatus };
+    if (newStatus === "converted") {
+      updates.confirmed_at = new Date().toISOString();
+    }
+    await supabase.from("referrals").update(updates).eq("id", id);
+    toast({ title: `Status atualizado para: ${STATUS_CONFIG[newStatus]?.label ?? newStatus}` });
     fetchData();
   };
 
   const statusBadge = (s: string) => {
-    if (s === "confirmed") return <Badge>Confirmada</Badge>;
-    if (s === "rejected") return <Badge variant="destructive">Rejeitada</Badge>;
-    return <Badge variant="secondary">Pendente</Badge>;
+    const cfg = STATUS_CONFIG[s] ?? { label: s, variant: "secondary" as const };
+    return <Badge variant={cfg.variant} className={cfg.className}>{cfg.label}</Badge>;
   };
 
   return (
@@ -71,11 +81,17 @@ export default function AdminReferrals() {
               <TableCell>{statusBadge(r.status)}</TableCell>
               <TableCell className="text-sm">{format(new Date(r.created_at), "dd/MM/yyyy")}</TableCell>
               <TableCell>
-                {r.status === "pending" && (
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => confirm(r.id)}>Confirmar</Button>
-                    <Button size="sm" variant="outline" onClick={() => reject(r.id)}>Rejeitar</Button>
-                  </div>
+                {r.status !== "converted" && r.status !== "confirmed" && r.status !== "rejected" && (
+                  <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v)}>
+                    <SelectTrigger className="w-[140px] h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STATUS_OPTIONS.map(s => (
+                        <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 )}
               </TableCell>
             </TableRow>
