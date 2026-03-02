@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { Search } from "lucide-react";
+import { Search, Pencil } from "lucide-react";
 
 interface Referral {
   id: string;
@@ -36,7 +38,33 @@ export default function AdminReferrals() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [editingReferral, setEditingReferral] = useState<Referral | null>(null);
+  const [editForm, setEditForm] = useState({ referred_name: "", referred_phone: "", referred_email: "" });
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const openEdit = (r: Referral) => {
+    setEditForm({ referred_name: r.referred_name, referred_phone: r.referred_phone, referred_email: r.referred_email ?? "" });
+    setEditingReferral(r);
+  };
+
+  const saveEdit = async () => {
+    if (!editingReferral) return;
+    if (!editForm.referred_email.trim()) {
+      toast({ title: "Email é obrigatório", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    await supabase.from("referrals").update({
+      referred_name: editForm.referred_name.trim(),
+      referred_phone: editForm.referred_phone.trim(),
+      referred_email: editForm.referred_email.trim(),
+    }).eq("id", editingReferral.id);
+    toast({ title: "Indicação atualizada" });
+    setEditingReferral(null);
+    setSaving(false);
+    fetchData();
+  };
 
   const fetchData = async () => {
     const { data } = await supabase
@@ -125,18 +153,23 @@ export default function AdminReferrals() {
               <TableCell>{statusBadge(r.status)}</TableCell>
               <TableCell className="text-sm">{format(new Date(r.created_at), "dd/MM/yyyy")}</TableCell>
               <TableCell>
-                {r.status !== "converted" && r.status !== "confirmed" && r.status !== "rejected" && (
-                  <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v)}>
-                    <SelectTrigger className="w-[140px] h-8 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map(s => (
-                        <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(r)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  {r.status !== "converted" && r.status !== "confirmed" && r.status !== "rejected" && (
+                    <Select value={r.status} onValueChange={(v) => updateStatus(r.id, v)}>
+                      <SelectTrigger className="w-[140px] h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map(s => (
+                          <SelectItem key={s} value={s}>{STATUS_CONFIG[s].label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
               </TableCell>
             </TableRow>
           ))}
@@ -150,6 +183,32 @@ export default function AdminReferrals() {
         </TableBody>
       </Table>
       </div>
+
+      <Dialog open={!!editingReferral} onOpenChange={(open) => !open && setEditingReferral(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Indicação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome</Label>
+              <Input value={editForm.referred_name} onChange={e => setEditForm(f => ({ ...f, referred_name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone</Label>
+              <Input value={editForm.referred_phone} onChange={e => setEditForm(f => ({ ...f, referred_phone: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Email *</Label>
+              <Input type="email" required value={editForm.referred_email} onChange={e => setEditForm(f => ({ ...f, referred_email: e.target.value }))} placeholder="Obrigatório para o CRM" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingReferral(null)}>Cancelar</Button>
+            <Button onClick={saveEdit} disabled={saving}>{saving ? "Salvando..." : "Salvar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
