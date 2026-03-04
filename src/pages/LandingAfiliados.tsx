@@ -26,7 +26,7 @@ export default function LandingAfiliados() {
             Indique e <span className="text-accent-foreground/80">Ganhe</span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-primary-foreground/80 md:text-xl">
-            Participe do programa de indicações do Dr. Erick. Indique pacientes, acompanhe suas conversões e receba recompensas exclusivas.
+            Participe do programa de indicações do Dr. Erik / Dra. Amablia. Indique pacientes, acompanhe suas conversões e receba recompensas exclusivas.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Button asChild size="lg" variant="secondary" className="text-base font-semibold">
@@ -81,7 +81,7 @@ export default function LandingAfiliados() {
 
       {/* Footer mínimo */}
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Dr. Erick — Programa de Indicações
+        © {new Date().getFullYear()} Dr. Erik / Dra. Amablia — Programa de Indicações
       </footer>
     </div>
   );
