@@ -82,10 +82,14 @@ export default function AdminReferrals() {
     if (editForm.status === "converted" && editingReferral.status !== "converted") {
       updates.confirmed_at = new Date().toISOString();
     }
-    await supabase.from("referrals").update(updates).eq("id", editingReferral.id);
+    const { error } = await supabase.from("referrals").update(updates).eq("id", editingReferral.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Erro ao atualizar", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Indicação atualizada" });
     setEditingReferral(null);
-    setSaving(false);
     fetchData();
   };
 
@@ -145,7 +149,11 @@ export default function AdminReferrals() {
     if (newStatus === "converted") {
       updates.confirmed_at = new Date().toISOString();
     }
-    await supabase.from("referrals").update(updates).eq("id", id);
+    const { error } = await supabase.from("referrals").update(updates).eq("id", id);
+    if (error) {
+      toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: `Status atualizado para: ${STATUS_CONFIG[newStatus]?.label ?? newStatus}` });
     fetchData();
   };
