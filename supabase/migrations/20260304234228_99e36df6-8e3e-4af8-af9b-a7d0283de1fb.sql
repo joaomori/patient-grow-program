@@ -1,0 +1,1 @@
+ALTER TABLE public.affiliates ADD COLUMN current_period_start timestamp with time zone DEFAULT NULL;

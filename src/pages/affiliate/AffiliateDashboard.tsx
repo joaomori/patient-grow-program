@@ -10,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut, Copy, Send, Gift } from "lucide-react";
-import { format } from "date-fns";
+import { format, addMonths, isPast } from "date-fns";
+import PeriodTimer from "@/components/affiliate/PeriodTimer";
 
 interface Referral {
   id: string;
@@ -38,28 +39,38 @@ interface RewardRule {
 export default function AffiliateDashboard() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const [affiliate, setAffiliate] = useState<{ id: string; referral_code: string } | null>(null);
+  const [affiliate, setAffiliate] = useState<{ id: string; referral_code: string; current_period_start: string | null } | null>(null);
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [rules, setRules] = useState<RewardRule[]>([]);
-  const [confirmedCount, setConfirmedCount] = useState(0);
+  const [confirmedInPeriod, setConfirmedInPeriod] = useState(0);
 
-  // New referral form
   const [refName, setRefName] = useState("");
   const [refPhone, setRefPhone] = useState("");
   const [refEmail, setRefEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const countConfirmedInPeriod = (refs: Referral[], periodStart: string | null) => {
+    if (!periodStart) return 0;
+    const start = new Date(periodStart);
+    const end = addMonths(start, 6);
+    return refs.filter(r =>
+      (r.status === "converted" || r.status === "confirmed") &&
+      new Date(r.created_at) >= start &&
+      new Date(r.created_at) < end
+    ).length;
+  };
 
   useEffect(() => {
     if (!user) return;
     const load = async () => {
       const { data: aff } = await supabase
         .from("affiliates")
-        .select("id, referral_code")
+        .select("id, referral_code, current_period_start")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!aff) return;
-      setAffiliate(aff);
+      setAffiliate(aff as any);
 
       const [refs, rews, rls] = await Promise.all([
         supabase.from("referrals").select("*").eq("affiliate_id", aff.id).order("created_at", { ascending: false }),
@@ -68,7 +79,7 @@ export default function AffiliateDashboard() {
       ]);
       if (refs.data) {
         setReferrals(refs.data);
-        setConfirmedCount(refs.data.filter(r => r.status === "converted" || r.status === "confirmed").length);
+        setConfirmedInPeriod(countConfirmedInPeriod(refs.data, (aff as any).current_period_start));
       }
       if (rews.data) setRewards(rews.data as unknown as Reward[]);
       if (rls.data) setRules(rls.data);
@@ -85,16 +96,37 @@ export default function AffiliateDashboard() {
     toast({ title: "Link copiado!" });
   };
 
+  const ensurePeriodActive = async (affiliateId: string, currentPeriodStart: string | null) => {
+    const needsNewPeriod = !currentPeriodStart || isPast(addMonths(new Date(currentPeriodStart), 6));
+    if (needsNewPeriod) {
+      const now = new Date().toISOString();
+      await supabase
+        .from("affiliates")
+        .update({ current_period_start: now } as any)
+        .eq("id", affiliateId);
+      return now;
+    }
+    return currentPeriodStart;
+  };
+
   const handleSubmitReferral = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!affiliate) return;
     setSubmitting(true);
+
+    // Ensure period is active
+    const updatedPeriodStart = await ensurePeriodActive(affiliate.id, affiliate.current_period_start);
+    if (updatedPeriodStart !== affiliate.current_period_start) {
+      setAffiliate(prev => prev ? { ...prev, current_period_start: updatedPeriodStart } : prev);
+    }
+
     const { data: insertedData, error } = await supabase.from("referrals").insert({
       affiliate_id: affiliate.id,
       referred_name: refName.trim(),
       referred_phone: refPhone.trim(),
       referred_email: refEmail.trim() || null,
     }).select("id").single();
+
     if (error) {
       toast({ title: "Erro", description: "Não foi possível enviar.", variant: "destructive" });
     } else {
@@ -126,15 +158,14 @@ export default function AffiliateDashboard() {
       const { data } = await supabase.from("referrals").select("*").eq("affiliate_id", affiliate.id).order("created_at", { ascending: false });
       if (data) {
         setReferrals(data);
-        setConfirmedCount(data.filter(r => r.status === "converted" || r.status === "confirmed").length);
+        setConfirmedInPeriod(countConfirmedInPeriod(data, updatedPeriodStart));
       }
     }
     setSubmitting(false);
   };
 
-  // Progress toward next reward
   const activeRule = rules[0];
-  const progressToNext = activeRule ? (confirmedCount % activeRule.conversions_required) : 0;
+  const progressToNext = activeRule ? (confirmedInPeriod % activeRule.conversions_required) : 0;
   const remaining = activeRule ? activeRule.conversions_required - progressToNext : 0;
 
   return (
@@ -159,6 +190,13 @@ export default function AffiliateDashboard() {
           </CardContent>
         </Card>
 
+        {/* Period Timer */}
+        <PeriodTimer
+          periodStart={affiliate?.current_period_start ?? null}
+          confirmedInPeriod={confirmedInPeriod}
+          goal={activeRule?.conversions_required ?? 0}
+        />
+
         {/* Progress */}
         {activeRule && (
           <Card>
@@ -168,14 +206,14 @@ export default function AffiliateDashboard() {
               </CardTitle>
               <CardDescription>
                 {remaining > 0
-                  ? `Faltam ${remaining} paciente(s) para ganhar: ${activeRule.reward_value}`
-                  : "Você atingiu uma recompensa! 🎉"}
+                  ? `Faltam ${remaining} paciente(s) no período para ganhar: ${activeRule.reward_value}`
+                  : "Você atingiu uma recompensa neste período! 🎉"}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Progress value={(progressToNext / activeRule.conversions_required) * 100} className="h-3" />
               <p className="text-sm text-muted-foreground mt-2">
-                {progressToNext} de {activeRule.conversions_required} conversões
+                {progressToNext} de {activeRule.conversions_required} conversões no período
               </p>
             </CardContent>
           </Card>
