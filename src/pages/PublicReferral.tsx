@@ -114,7 +114,7 @@ export default function PublicReferral() {
     <div className="min-h-screen bg-background">
       {/* Hero */}
       <section className="bg-primary text-primary-foreground py-16 text-center px-4">
-        <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">Dr. Erick</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight md:text-4xl">Dr. Erik / Dra. Amablia</h1>
         <p className="mt-2 text-primary-foreground/80 text-lg">Agende sua consulta agora mesmo</p>
       </section>
 
@@ -162,7 +162,7 @@ export default function PublicReferral() {
       </section>
 
       <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} Dr. Erick — Programa de Indicações
+        © {new Date().getFullYear()} Dr. Erik / Dra. Amablia — Programa de Indicações
       </footer>
     </div>
   );

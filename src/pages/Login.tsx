@@ -39,7 +39,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Sistema de Afiliados</CardTitle>
-          <CardDescription>Dr. Erick — Acesse sua conta</CardDescription>
+          <CardDescription>Dr. Erik / Dra. Amablia — Acesse sua conta</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">

@@ -39,7 +39,7 @@ export function AdminSidebar() {
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>
-            {!collapsed && "Dr. Erick — Admin"}
+            {!collapsed && "Dr. Erik / Dra. Amablia — Admin"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
