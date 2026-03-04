@@ -110,7 +110,25 @@ export default function AdminReferrals() {
     if (data) setAffiliates(data as unknown as Affiliate[]);
   };
 
-  useEffect(() => { fetchData(); fetchAffiliates(); }, []);
+  useEffect(() => {
+    fetchData();
+    fetchAffiliates();
+
+    const channel = supabase
+      .channel("admin-referrals-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "referrals" },
+        () => {
+          fetchData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const openCreate = () => {
     setCreateForm({ referred_name: "", referred_phone: "", referred_email: "", affiliate_id: "" });
