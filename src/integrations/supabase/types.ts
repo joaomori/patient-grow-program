@@ -17,6 +17,7 @@ export type Database = {
       affiliates: {
         Row: {
           created_at: string
+          current_period_start: string | null
           id: string
           is_active: boolean
           referral_code: string
@@ -24,6 +25,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_period_start?: string | null
           id?: string
           is_active?: boolean
           referral_code: string
@@ -31,6 +33,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_period_start?: string | null
           id?: string
           is_active?: boolean
           referral_code?: string
