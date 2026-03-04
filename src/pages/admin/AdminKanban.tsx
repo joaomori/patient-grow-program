@@ -67,7 +67,21 @@ export default function AdminKanban() {
     if (data) setAffiliates(data as unknown as Affiliate[]);
   };
 
-  useEffect(() => { fetchData(); fetchAffiliates(); }, []);
+  useEffect(() => {
+    fetchData();
+    fetchAffiliates();
+
+    const channel = supabase
+      .channel("admin-kanban-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "referrals" },
+        () => { fetchData(); }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const openEdit = (r: Referral) => {
     setEditForm({
