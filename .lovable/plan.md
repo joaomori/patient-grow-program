@@ -1,54 +1,19 @@
 
-# Kanban de Indicacoes com Drag and Drop
 
-## Objetivo
-Adicionar uma visualizacao Kanban na pagina de Indicacoes do admin, onde cada coluna representa um status (Pendente, Contatado, Agendado, Atendido, Convertido, Rejeitado) e os cards de leads podem ser arrastados entre colunas para atualizar o status automaticamente.
+# Renomear "Dr. Erick" para "Dr. Erik / Dra. Amablia"
 
-## Abordagem
-Implementar drag-and-drop nativo usando a HTML5 Drag and Drop API (sem dependencias externas), mantendo a visualizacao de tabela existente com um toggle para alternar entre os modos.
+## Alteracoes
 
-## Mudancas
+Substituir todas as ocorrencias de "Dr. Erick" pelo nome correto em 4 arquivos:
 
-### 1. Toggle Tabela/Kanban
-- Adicionar botoes de alternancia (icones List e Columns) na toolbar existente do `AdminReferrals.tsx`
-- Estado `viewMode` controla qual visualizacao exibir ("table" | "kanban")
+1. **`src/pages/PublicReferral.tsx`** (linhas 117, 165): Titulo hero e footer
+2. **`src/pages/Login.tsx`** (linha 42): Descricao do card de login
+3. **`src/pages/LandingAfiliados.tsx`** (linhas 29, 84): Texto do programa e footer
+4. **`src/components/admin/AdminSidebar.tsx`** (linha 42): Label do sidebar admin
 
-### 2. Componente KanbanBoard
-- **Novo arquivo**: `src/components/admin/KanbanBoard.tsx`
-- Uma coluna por status: Pendente, Contatado, Agendado, Atendido, Convertido, Rejeitado
-- Cada coluna mostra o contador de cards e a cor correspondente ao status (reutilizando STATUS_CONFIG)
-- Cards exibem: nome, telefone, afiliado, valor (se houver), data
-- Botoes de acao nos cards: WhatsApp e Editar
+Todas as referencias "Dr. Erick" serao trocadas por "Dr. Erik / Dra. Amablia".
 
-### 3. Drag and Drop
-- Usar `draggable`, `onDragStart`, `onDragOver`, `onDrop` nativos do HTML5
-- Ao soltar um card em outra coluna, chama `updateStatus(id, novoStatus)` ja existente
-- Feedback visual: coluna destaca ao receber drag (borda/fundo muda)
-- Cards de status "converted" e "rejected" nao sao arrastáveis (finais)
+## Correcao do bug do Kanban
 
-### 4. Integracao
-- O KanbanBoard recebe as mesmas props: `referrals` filtrados, `updateStatus`, `openEdit`, `formatWhatsAppUrl`
-- Busca e filtros continuam funcionando em ambos os modos
-- O botao "Nova Indicacao" permanece disponivel em ambos os modos
+Alem da renomeacao, vou corrigir o bug onde o status nao atualiza no Kanban. O problema esta em `src/pages/admin/AdminKanban.tsx`: as chamadas `supabase.update()` nao verificam erros, entao o toast de sucesso aparece mesmo quando a operacao falha. Adicionarei tratamento de erro nas funcoes `updateStatus` e `saveEdit`.
 
-## Detalhes Tecnicos
-
-### Estrutura do KanbanBoard
-```text
-+------------+------------+------------+------------+------------+------------+
-| Pendente   | Contatado  | Agendado   | Atendido   | Convertido | Rejeitado  |
-| (3)        | (2)        | (1)        | (0)        | (5)        | (1)        |
-+------------+------------+------------+------------+------------+------------+
-| [Card]     | [Card]     | [Card]     |            | [Card]     | [Card]     |
-| [Card]     | [Card]     |            |            | [Card]     |            |
-| [Card]     |            |            |            | [Card]     |            |
-+------------+------------+------------+------------+------------+------------+
-```
-
-### Arquivos
-- **Novo**: `src/components/admin/KanbanBoard.tsx` - Componente do kanban com colunas e cards
-- **Editado**: `src/pages/admin/AdminReferrals.tsx` - Toggle de visualizacao e integracao do kanban
-
-### Sem dependencias externas
-- HTML5 Drag and Drop API e suficiente para este caso de uso
-- Sem necessidade de instalar bibliotecas como react-beautiful-dnd ou dnd-kit
