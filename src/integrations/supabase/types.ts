@@ -221,6 +221,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      debug_current_role: { Args: never; Returns: string }
       get_affiliate_id_for_user: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
