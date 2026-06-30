@@ -29,54 +29,44 @@ export default function PublicReferral() {
   useEffect(() => {
     if (!code) { setInvalid(true); return; }
     supabase
-      .from("affiliates")
-      .select("id")
-      .eq("referral_code", code)
-      .eq("is_active", true)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setAffiliateId(data.id);
-        else setInvalid(true);
+      .rpc("get_affiliate_id_by_referral_code", { referral_code: code })
+      .then(({ data, error }) => {
+        if (error || !data) setInvalid(true);
+        else setAffiliateId(data);
       });
   }, [code]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!affiliateId) return;
+    if (!affiliateId || !code) return;
     setLoading(true);
 
-    const { data: insertedData, error } = await supabase.from("referrals").insert({
-      affiliate_id: affiliateId,
-      referred_name: name.trim(),
-      referred_phone: phone.trim(),
-      referred_email: email.trim() || null,
-    }).select("id").single();
+    try {
+      const { data, error } = await supabase.functions.invoke("create-referral", {
+        body: {
+          referral_code: code,
+          referred_name: name.trim(),
+          referred_phone: phone.trim(),
+          referred_email: email.trim(),
+        },
+      });
 
-    if (error) {
-      toast({ title: "Erro", description: "Não foi possível enviar a indicação.", variant: "destructive" });
-    } else {
-      setSubmitted(true);
-      try {
-        const { data: affData } = await supabase
-          .from("affiliates")
-          .select("referral_code, profiles(full_name)")
-          .eq("id", affiliateId)
-          .single();
-        const affiliateName = (affData as any)?.profiles?.full_name || "";
-        const referralCode = affData?.referral_code || "";
-        supabase.functions.invoke("sync-referral-rdstation", {
-          body: {
-            referral_id: insertedData?.id,
-            referred_name: name.trim(),
-            referred_phone: phone.trim(),
-            referred_email: email.trim() || null,
-            affiliate_name: affiliateName,
-            referral_code: referralCode,
-          },
+      if (error || !data?.success) {
+        toast({
+          title: "Erro",
+          description: data?.error || "Não foi possível enviar a indicação.",
+          variant: "destructive",
         });
-      } catch (e) {
-        console.error("RD Station sync error:", e);
+      } else {
+        setSubmitted(true);
       }
+    } catch (e) {
+      console.error("Create referral error:", e);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a indicação. Tente novamente.",
+        variant: "destructive",
+      });
     }
     setLoading(false);
   };
@@ -148,8 +138,8 @@ export default function PublicReferral() {
                 <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="(11) 99999-0000" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email (opcional)</Label>
-                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
             </CardContent>
             <div className="px-6 pb-6">
