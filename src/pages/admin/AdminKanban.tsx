@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -101,7 +102,7 @@ export default function AdminKanban() {
       return;
     }
     setSaving(true);
-    const updates: Record<string, unknown> = {
+    const updates: Partial<TablesUpdate<"referrals">> = {
       referred_name: editForm.referred_name.trim(),
       referred_phone: editForm.referred_phone.trim(),
       referred_email: editForm.referred_email.trim(),
@@ -123,7 +124,7 @@ export default function AdminKanban() {
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
-    const updates: Record<string, unknown> = { status: newStatus };
+    const updates: Partial<TablesUpdate<"referrals">> = { status: newStatus };
     if (newStatus === "converted") {
       updates.confirmed_at = new Date().toISOString();
     }
