@@ -29,14 +29,10 @@ export default function PublicReferral() {
   useEffect(() => {
     if (!code) { setInvalid(true); return; }
     supabase
-      .from("affiliates")
-      .select("id")
-      .eq("referral_code", code)
-      .eq("is_active", true)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setAffiliateId(data.id);
-        else setInvalid(true);
+      .rpc("get_affiliate_id_by_referral_code", { referral_code: code })
+      .then(({ data, error }) => {
+        if (error || !data) setInvalid(true);
+        else setAffiliateId(data);
       });
   }, [code]);
 

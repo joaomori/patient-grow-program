@@ -222,6 +222,10 @@ export type Database = {
     }
     Functions: {
       debug_current_role: { Args: never; Returns: string }
+      get_affiliate_id_by_referral_code: {
+        Args: { referral_code: string }
+        Returns: string
+      }
       get_affiliate_id_for_user: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
