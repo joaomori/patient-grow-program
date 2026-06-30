@@ -138,8 +138,8 @@ export default function PublicReferral() {
                 <Input id="phone" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required placeholder="(11) 99999-0000" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">Email (opcional)</Label>
-                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="seu@email.com" />
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" />
               </div>
             </CardContent>
             <div className="px-6 pb-6">
