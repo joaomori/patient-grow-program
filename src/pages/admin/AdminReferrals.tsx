@@ -73,7 +73,7 @@ export default function AdminReferrals() {
       return;
     }
     setSaving(true);
-    const updates: Record<string, unknown> = {
+    const updates: Partial<TablesUpdate<"referrals">> = {
       referred_name: editForm.referred_name.trim(),
       referred_phone: editForm.referred_phone.trim(),
       referred_email: editForm.referred_email.trim(),
@@ -164,7 +164,7 @@ export default function AdminReferrals() {
   };
 
   const updateStatus = async (id: string, newStatus: string) => {
-    const updates: Record<string, unknown> = { status: newStatus };
+    const updates: Partial<TablesUpdate<"referrals">> = { status: newStatus };
     if (newStatus === "converted") {
       updates.confirmed_at = new Date().toISOString();
     }
