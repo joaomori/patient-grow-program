@@ -29,10 +29,11 @@ export default function PublicReferral() {
   useEffect(() => {
     if (!code) { setInvalid(true); return; }
     supabase
-      .rpc("get_affiliate_id_by_referral_code", { referral_code: code })
+      .rpc("get_affiliate_by_code", { code })
       .then(({ data, error }) => {
-        if (error || !data) setInvalid(true);
-        else setAffiliateId(data);
+        const row = Array.isArray(data) ? data[0] : null;
+        if (error || !row?.id) setInvalid(true);
+        else setAffiliateId(row.id);
       });
   }, [code]);
 

@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793112544720,
+      "tag": "0000_reward_rules_image_and_metas_bucket",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793112570781,
+      "tag": "0001_get_affiliate_by_code",
+      "breakpoints": true
+    }
+  ]
+}

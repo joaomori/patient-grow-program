@@ -129,6 +129,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
           reward_type: string
@@ -139,6 +140,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
           reward_type?: string
@@ -149,6 +151,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
           reward_type?: string
@@ -222,6 +225,14 @@ export type Database = {
     }
     Functions: {
       debug_current_role: { Args: never; Returns: string }
+      get_affiliate_by_code: {
+        Args: { code: string }
+        Returns: {
+          id: string
+          is_active: boolean
+          referral_code: string
+        }[]
+      }
       get_affiliate_id_by_referral_code: {
         Args: { referral_code: string }
         Returns: string
