@@ -106,9 +106,9 @@ export default function AdminRewardRules() {
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Nova Regra</Button>
           </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nova Regra de Recompensa</DialogTitle></DialogHeader>
-            <div className="space-y-4">
+          <DialogContent className="flex max-h-[90vh] w-[calc(100vw-1rem)] max-w-lg flex-col gap-0 p-0">
+            <DialogHeader className="border-b p-6 pb-4"><DialogTitle>Nova Regra de Recompensa</DialogTitle></DialogHeader>
+            <div className="flex-1 space-y-4 overflow-y-auto p-6">
               <div className="space-y-2">
                 <Label>Nome</Label>
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: Limpeza de pele" />
@@ -118,24 +118,52 @@ export default function AdminRewardRules() {
                 <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalhes da recompensa" />
               </div>
               <div className="space-y-2">
-                <Label>Conversões necessárias</Label>
-                <Input type="number" min="1" value={conversions} onChange={e => setConversions(e.target.value)} />
+                <Label>Imagem da meta</Label>
+                <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleFile} />
+                {imageUrl ? (
+                  <div className="space-y-2">
+                    <img src={imageUrl} alt="Prévia da meta" className="h-32 w-full rounded-md border object-cover" />
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                        <Upload className="mr-2 h-4 w-4" /> {uploading ? "Enviando..." : "Trocar imagem"}
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => setImageUrl("")}>
+                        <X className="mr-2 h-4 w-4" /> Remover
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button type="button" variant="outline" className="w-full" disabled={uploading} onClick={() => fileRef.current?.click()}>
+                    <Upload className="mr-2 h-4 w-4" /> {uploading ? "Enviando..." : "Anexar imagem"}
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground">JPG, PNG ou WEBP, até 5 MB.</p>
+                <Input className="h-8 text-xs" value={imageUrl} onChange={e => setImageUrl(e.target.value)} placeholder="ou cole o link de uma imagem" />
               </div>
-              <div className="space-y-2">
-                <Label>Tipo</Label>
-                <Select value={type} onValueChange={setType}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="procedure">Procedimento</SelectItem>
-                    <SelectItem value="discount">Desconto</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Conversões necessárias</Label>
+                  <Input type="number" min="1" value={conversions} onChange={e => setConversions(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo</Label>
+                  <Select value={type} onValueChange={setType}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="procedure">Procedimento</SelectItem>
+                      <SelectItem value="discount">Desconto</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label>Recompensa</Label>
                 <Input value={value} onChange={e => setValue(e.target.value)} placeholder="Ex: 1 limpeza de pele grátis" />
               </div>
-              <Button className="w-full" onClick={handleCreate}>Criar Regra</Button>
+            </div>
+            <div className="flex gap-2 border-t p-4">
+              <Button variant="outline" className="flex-1" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button className="flex-1" onClick={handleCreate} disabled={uploading}>Salvar</Button>
             </div>
           </DialogContent>
         </Dialog>
