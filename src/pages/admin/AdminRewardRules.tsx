@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Upload, X } from "lucide-react";
 
 interface RewardRule {
   id: string;
@@ -18,7 +18,11 @@ interface RewardRule {
   reward_type: string;
   reward_value: string;
   is_active: boolean;
+  image_url: string | null;
 }
+
+const MAX_SIZE = 5 * 1024 * 1024;
+const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
 
 export default function AdminRewardRules() {
   const [rules, setRules] = useState<RewardRule[]>([]);
@@ -28,27 +32,65 @@ export default function AdminRewardRules() {
   const [conversions, setConversions] = useState("3");
   const [type, setType] = useState("procedure");
   const [value, setValue] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const fetchRules = async () => {
     const { data } = await supabase.from("reward_rules").select("*").order("created_at", { ascending: false });
-    if (data) setRules(data);
+    if (data) setRules(data as RewardRule[]);
   };
 
   useEffect(() => { fetchRules(); }, []);
 
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!ALLOWED.includes(file.type)) {
+      toast({ title: "Formato inválido", description: "Use JPG, PNG ou WEBP.", variant: "destructive" });
+      return;
+    }
+    if (file.size > MAX_SIZE) {
+      toast({ title: "Imagem muito grande", description: "O limite é 5 MB.", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("metas").upload(path, file, { contentType: file.type });
+    if (error) {
+      setUploading(false);
+      toast({ title: "Erro ao enviar", description: error.message, variant: "destructive" });
+      return;
+    }
+    const { data, error: urlErr } = await supabase.storage.from("metas").createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+    setUploading(false);
+    if (urlErr || !data) {
+      toast({ title: "Erro ao gerar link da imagem", variant: "destructive" });
+      return;
+    }
+    setImageUrl(data.signedUrl);
+  };
+
   const handleCreate = async () => {
     if (!name.trim() || !value.trim()) return;
-    await supabase.from("reward_rules").insert({
+    const { error } = await supabase.from("reward_rules").insert({
       name: name.trim(),
       description: description.trim() || null,
       conversions_required: parseInt(conversions),
       reward_type: type,
       reward_value: value.trim(),
+      image_url: imageUrl.trim() || null,
     });
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      return;
+    }
     toast({ title: "Regra criada!" });
     setOpen(false);
-    setName(""); setDescription(""); setConversions("3"); setValue("");
+    setName(""); setDescription(""); setConversions("3"); setValue(""); setImageUrl("");
     fetchRules();
   };
 
