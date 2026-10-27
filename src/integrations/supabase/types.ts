@@ -225,6 +225,14 @@ export type Database = {
     }
     Functions: {
       debug_current_role: { Args: never; Returns: string }
+      get_affiliate_by_code: {
+        Args: { code: string }
+        Returns: {
+          id: string
+          is_active: boolean
+          referral_code: string
+        }[]
+      }
       get_affiliate_id_by_referral_code: {
         Args: { referral_code: string }
         Returns: string
